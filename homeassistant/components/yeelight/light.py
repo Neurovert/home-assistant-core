@@ -14,6 +14,7 @@ from yeelight.enums import BulbType, LightType, PowerMode, SceneClass
 from yeelight.main import BulbException
 
 from homeassistant.components.light import (
+    ATTR_BRIGHTNESS_STEP_PCT,
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP,
     ATTR_EFFECT,
@@ -27,6 +28,7 @@ from homeassistant.components.light import (
     ColorMode,
     LightEntity,
     LightEntityFeature,
+    VALID_BRIGHTNESS_STEP_PCT,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_MODE, CONF_NAME
@@ -69,8 +71,10 @@ from .entity import YeelightEntity
 _LOGGER = logging.getLogger(__name__)
 
 ATTR_MINUTES = "minutes"
+ATTR_MILLISECONDS = "duration"
 
 SERVICE_SET_MODE = "set_mode"
+SERVICE_ADJUST_BRIGHT = "adjust_bright"
 SERVICE_SET_MUSIC_MODE = "set_music_mode"
 SERVICE_START_FLOW = "start_flow"
 SERVICE_SET_COLOR_SCENE = "set_color_scene"
@@ -78,6 +82,8 @@ SERVICE_SET_HSV_SCENE = "set_hsv_scene"
 SERVICE_SET_COLOR_TEMP_SCENE = "set_color_temp_scene"
 SERVICE_SET_COLOR_FLOW_SCENE = "set_color_flow_scene"
 SERVICE_SET_AUTO_DELAY_OFF_SCENE = "set_auto_delay_off_scene"
+SERVICE_SET_NIGHTLIGHT_SCENE = "set_nightlight_scene"
+
 
 EFFECT_DISCO = "Disco"
 EFFECT_TEMP = "Slow Temp"
@@ -170,6 +176,11 @@ SERVICE_SCHEMA_SET_MODE = {
     vol.Required(ATTR_MODE): vol.In([mode.name.lower() for mode in PowerMode])
 }
 
+SERVICE_SCHEMA_ADJUST_BRIGHT = {
+    vol.Required(ATTR_BRIGHTNESS_STEP_PCT): VALID_BRIGHTNESS_STEP_PCT,
+    vol.Required(ATTR_MILLISECONDS): vol.All(vol.Coerce(int), vol.Range(min=50, max=60000)),
+}
+
 SERVICE_SCHEMA_SET_MUSIC_MODE = {vol.Required(ATTR_MODE_MUSIC): cv.boolean}
 
 SERVICE_SCHEMA_START_FLOW = YEELIGHT_FLOW_TRANSITION_SCHEMA
@@ -203,6 +214,10 @@ SERVICE_SCHEMA_SET_COLOR_FLOW_SCENE = YEELIGHT_FLOW_TRANSITION_SCHEMA
 
 SERVICE_SCHEMA_SET_AUTO_DELAY_OFF_SCENE = {
     vol.Required(ATTR_MINUTES): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+    vol.Required(ATTR_BRIGHTNESS): VALID_BRIGHTNESS,
+}
+
+SERVICE_SCHEMA_SET_NIGHTLIGHT_SCENE = {
     vol.Required(ATTR_BRIGHTNESS): VALID_BRIGHTNESS,
 }
 
@@ -340,6 +355,12 @@ def _async_setup_services(hass: HomeAssistant):
             service_call.data[ATTR_BRIGHTNESS],
         )
 
+    async def _async_adjust_bright(entity, service_call):
+        await entity.async_adjust_bright(
+            service_call.data[ATTR_BRIGHTNESS_STEP_PCT],
+            service_call.data[ATTR_MILLISECONDS],
+        )
+
     async def _async_set_hsv_scene(entity, service_call):
         await entity.async_set_scene(
             SceneClass.HSV,
@@ -369,11 +390,21 @@ def _async_setup_services(hass: HomeAssistant):
             service_call.data[ATTR_MINUTES],
         )
 
+    async def _async_set_nightlight_scene(entity, service_call):
+        await entity.async_set_scene(
+            SceneClass.NIGHTLIGHT,
+            service_call.data[ATTR_BRIGHTNESS],
+        )
+
     platform = entity_platform.async_get_current_platform()
 
     platform.async_register_entity_service(
         SERVICE_SET_MODE, SERVICE_SCHEMA_SET_MODE, "async_set_mode"
     )
+    platform.async_register_entity_service(
+        SERVICE_ADJUST_BRIGHT, SERVICE_SCHEMA_ADJUST_BRIGHT, _async_adjust_bright
+    )
+    
     platform.async_register_entity_service(
         SERVICE_START_FLOW, SERVICE_SCHEMA_START_FLOW, _async_start_flow
     )
@@ -397,6 +428,11 @@ def _async_setup_services(hass: HomeAssistant):
         SERVICE_SET_AUTO_DELAY_OFF_SCENE,
         SERVICE_SCHEMA_SET_AUTO_DELAY_OFF_SCENE,
         _async_set_auto_delay_off_scene,
+    )
+    platform.async_register_entity_service(
+        SERVICE_SET_NIGHTLIGHT_SCENE,
+        SERVICE_SCHEMA_SET_NIGHTLIGHT_SCENE,
+        _async_set_nightlight_scene,
     )
     platform.async_register_entity_service(
         SERVICE_SET_MUSIC_MODE, SERVICE_SCHEMA_SET_MUSIC_MODE, "async_set_music_mode"
@@ -865,6 +901,10 @@ class YeelightGenericLight(YeelightEntity, LightEntity):
         """
         await self._bulb.async_set_scene(scene_class, *args)
 
+    @_async_cmd
+    async def async_adjust_bright(self, pct, duration):
+        """ Adjust the brightness by specified percentage within specified duration. """
+        await self._bulb.async_adjust_bright(pct, duration, light_type=self.light_type)
 
 class YeelightColorLightSupport(YeelightGenericLight):
     """Representation of a Color Yeelight light support."""

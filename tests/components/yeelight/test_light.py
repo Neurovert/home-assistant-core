@@ -399,6 +399,9 @@ async def test_services(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -
         [PowerMode[mode.upper()]],
     )
 
+    # TODO P1 adjust_bright
+    # TODO P1 set_nightlight_scene
+
     # start_flow
     await _async_test_service(
         SERVICE_START_FLOW,
