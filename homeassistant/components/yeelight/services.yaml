@@ -16,6 +16,34 @@ set_mode:
             - "normal"
             - "rgb"
           translation_key: mode
+adjust_bright:
+  name: Adjust brightness
+  description: Change the brightness by specified percentage within specified duration. If the light is off, it will be turned on.
+  target:
+    entity:
+      integration: yeelight
+      domain: light
+  fields:
+    brightness_step_pct:
+      name: Brightness step
+      required: true
+      description: Change brightness by a percentage.
+      selector:
+        number:
+          min: -100
+          max: 100
+          unit_of_measurement: "%"
+    duration:
+      name: Duration
+      required: true
+      description: Duration it takes to get to next state.
+      example: 500
+      default: 500
+      selector:
+        number:
+          min: 50
+          max: 60000
+          unit_of_measurement: "ms"
 set_color_scene:
   target:
     entity:
@@ -110,6 +138,23 @@ set_auto_delay_off_scene:
       selector:
         number:
           min: 0
+          max: 100
+          unit_of_measurement: "%"
+set_nightlight_scene:
+  name: Nightlight with specific brightness
+  description: Turns the nightlight on to the specified brightness. If light is off, it will be turned on.
+  target:
+    entity:
+      integration: yeelight
+      domain: light
+  fields:
+    brightness:
+      name: Brightness
+      description: The brightness value to set.
+      required: True
+      selector:
+        number:
+          min: 1
           max: 100
           unit_of_measurement: "%"
 start_flow:
