@@ -25,12 +25,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import FibaroController, FibaroDevice
 from .const import DOMAIN
 
+PRESET_NONE = "none"
+PRESET_TEST = "test"
+PRESET_OFF = "off"
 PRESET_RESUME = "resume"
-PRESET_MOIST = "moist"
-PRESET_FURNACE = "furnace"
-PRESET_CHANGEOVER = "changeover"
-PRESET_ECO_HEAT = "eco_heat"
-PRESET_ECO_COOL = "eco_cool"
 PRESET_FORCE_OPEN = "force_open"
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,14 +56,10 @@ HA_FANMODES = {v: k for k, v in FANMODES.items()}
 # Table 130, Thermostat Mode Set version 3::Mode encoding.
 # 4 AUXILIARY
 OPMODES_PRESET = {
-    5: PRESET_RESUME,
-    7: PRESET_FURNACE,
-    9: PRESET_MOIST,
-    10: PRESET_CHANGEOVER,
-    11: PRESET_ECO_HEAT,
-    12: PRESET_ECO_COOL,
-    13: PRESET_AWAY,
-    15: PRESET_BOOST,
+    None: PRESET_NONE,
+    -1: PRESET_TEST,
+    0: PRESET_OFF,
+    1: PRESET_RESUME,
     31: PRESET_FORCE_OPEN,
 }
 
@@ -74,29 +68,14 @@ HA_OPMODES_PRESET = {v: k for k, v in OPMODES_PRESET.items()}
 OPMODES_HVAC = {
     0: HVACMode.OFF,
     1: HVACMode.HEAT,
-    2: HVACMode.COOL,
-    3: HVACMode.AUTO,
-    4: HVACMode.HEAT,
-    5: HVACMode.AUTO,
-    6: HVACMode.FAN_ONLY,
-    7: HVACMode.HEAT,
-    8: HVACMode.DRY,
-    9: HVACMode.DRY,
-    10: HVACMode.AUTO,
-    11: HVACMode.HEAT,
-    12: HVACMode.COOL,
-    13: HVACMode.AUTO,
-    15: HVACMode.AUTO,
     31: HVACMode.HEAT,
 }
 
 HA_OPMODES_HVAC = {
     HVACMode.OFF: 0,
     HVACMode.HEAT: 1,
-    HVACMode.COOL: 2,
-    HVACMode.AUTO: 3,
-    HVACMode.FAN_ONLY: 6,
-    HVACMode.DRY: 8,
+    HVACMode.HEAT: 31,
+
 }
 
 TARGET_TEMP_ACTIONS = (
